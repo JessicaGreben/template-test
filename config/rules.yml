@@ -1,0 +1,62 @@
+groups:
+  - name: seed_metrics_exported_by_db
+    rules:
+    - record: device_total_bytes
+      expr: 100
+      labels:
+        tenant_id: tenant_id_1
+        cluster_name: cluster_name_1
+    - record: device_total_bytes
+      expr: 200
+      labels:
+        tenant_id: tenant_id_2
+        cluster_name: cluster_name_2
+    - record: device_total_bytes
+      expr: 347
+      labels:
+        tenant_id: tenant_id_1
+        cluster_name: cluster_name_3
+    - record: device_total_bytes
+      expr: 100
+      labels:
+        tenant_id: tenant_id_1
+        cluster_name: cluster_name_4
+
+  - name: opt_1_template_config
+    rules:
+    - record: template_storage_pct
+      expr: 40
+      labels:
+        template: aws_i4i_2xlarge
+
+  - name: opt_1_storage
+    rules:
+    - record: storage_max_pct_by_template_no_default
+      expr: |
+        sum by (template, tenant_id, cluster_name) (cluster_template_info)
+          *
+        on (template) group_right(tenant_id, cluster_name) ( template_storage_pct )
+    - record: storage_max_pct_by_template_with_default
+      expr: |
+        sum by (template, tenant_id, cluster_name) (cluster_template_info)
+          *
+        on (template) group_right(tenant_id, cluster_name) (
+          template_storage_pct
+            or
+          on(template) count by (template)(cluster_template_info) * 0 + 50
+        )
+    - record: storage_max_opt_1
+      expr: device_total_bytes *  on (cluster_name, tenant_id) ( storage_max_pct_by_template_with_default / 100 )
+
+
+  - name: opt_2_storage
+    rules:
+    - record: storage_max_opt_2_no_default
+      expr: device_total_bytes *  on (cluster_name, tenant_id) ( storage_pct / 100 )
+    - record: storage_max_opt_2_with_default
+      expr: |
+        device_total_bytes *  on (cluster_name, tenant_id) (
+          storage_pct / 100
+            or
+          on(cluster_name, tenant_id) count by (cluster_name, tenant_id)(device_total_bytes) * 0 + .5
+        )

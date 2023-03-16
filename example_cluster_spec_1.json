@@ -1,0 +1,8 @@
+{
+    "id": "aws_i3en_2xlarge",
+    "scaling": {
+        "thresholds": {
+            "storage_pct": 50
+        }
+    }
+}
